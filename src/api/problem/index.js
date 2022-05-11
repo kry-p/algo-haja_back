@@ -6,6 +6,7 @@ const problem = new Router();
 
 // PUT methods
 problem.put('/', problemCtrl.addProblem);
+
 // PATCH methods
 problem.patch('/', problemCtrl.updateProblem);
 

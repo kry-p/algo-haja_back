@@ -1,3 +1,4 @@
+import Group from '../models/group';
 import User from '../models/user';
 
 export const checkLoggedIn = (ctx, next) => {
@@ -16,5 +17,29 @@ export const checkAdmin = async (ctx, next) => {
     return;
   }
 
+  return next();
+};
+
+export const checkGroupExists = async (ctx, next) => {
+  const { groupName } = ctx.request.body;
+  const group = await Group.findOne({ groupName });
+
+  if (!group) {
+    ctx.status = 401;
+    return;
+  }
+  return next();
+};
+
+export const checkPracticeExists = async (ctx, next) => {
+  const { practiceName } = ctx.request.body;
+  const practice = await Group.findOne({
+    'practice.practiceName': practiceName,
+  });
+
+  if (!practice) {
+    ctx.status = 401;
+    return;
+  }
   return next();
 };

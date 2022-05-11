@@ -8,7 +8,6 @@ import { passwordRegex } from '../../lib/constants';
  * 회원가입
  * POST - /api/auth/register
  */
-
 export const register = async (ctx) => {
   const schema = Joi.object().keys({
     username: Joi.string().alphanum().min(4).max(20).required(),
