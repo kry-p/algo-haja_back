@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import arrayUniquePlugin from 'mongoose-unique-array';
 
 // Schema
 const ProblemSchema = new Schema({
@@ -14,6 +15,8 @@ const ProblemSchema = new Schema({
   tags: [String],
   rating: [{ username: String, rate: Number }],
 });
+
+ProblemSchema.plugin(arrayUniquePlugin);
 
 const Problem = mongoose.model('Problem', ProblemSchema);
 

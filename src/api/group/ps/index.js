@@ -6,6 +6,8 @@ const ps = new Router();
 
 // PUT methods
 ps.put('/', checkGroupExists, psCtrl.createGroupPractice);
+ps.put('/pool', checkGroupExists, psCtrl.createGroupPracticeFromPool);
+
 // PATCH methods
 ps.patch(
   '/',

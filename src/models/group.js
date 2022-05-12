@@ -1,11 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
+import arrayUniquePlugin from 'mongoose-unique-array';
 
 // Schema
 const GroupSchema = new Schema({
   groupName: {
     type: String,
     required: true,
-    unique: true,
   },
   isPublic: { type: Boolean, required: true },
   manager: { type: [String], required: true },
@@ -13,7 +13,7 @@ const GroupSchema = new Schema({
   pool: { type: [Number], required: true },
   practice: [
     {
-      practiceName: { type: String, required: true, unique: true },
+      practiceName: { type: String, required: true },
       start: { type: Date, required: true },
       end: { type: Date, required: true },
       problem: { type: [Number], required: true },
@@ -26,6 +26,7 @@ const GroupSchema = new Schema({
     memberName: [{ username: String, nameInRepo: String }],
   },
 });
+GroupSchema.plugin(arrayUniquePlugin);
 
 const Group = mongoose.model('Group', GroupSchema);
 
