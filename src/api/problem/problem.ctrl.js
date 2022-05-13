@@ -63,7 +63,7 @@ export const updateProblem = async (ctx) => {
  * 사용자가 푼 문제 조회
  * POST - /api/problem/user-solved
  */
-export const findUserSolved = async (ctx) => {
+export const getUserSolved = async (ctx) => {
   const { username } = ctx.request.body;
 
   if (!username) {
@@ -91,7 +91,7 @@ export const findUserSolved = async (ctx) => {
  * 사용자가 풀지 못한 문제 조회
  * POST - /api/problem/user-tried
  */
-export const findUserTried = async (ctx) => {
+export const getUserTried = async (ctx) => {
   const { username } = ctx.request.body;
 
   if (!username) {

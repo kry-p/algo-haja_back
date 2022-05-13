@@ -1,15 +1,21 @@
+/*
+ * Server core
+ */
+// Koa.js
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 
+// Mongoose
 import mongoose from 'mongoose';
-
+// API and middlewares
 import api from './api';
 import jwtMiddleware from './lib/jwtMiddleware';
 
 const app = new Koa();
 const router = new Router();
 
+// env
 require('dotenv').config();
 
 const { PORT, MONGO_URI } = process.env;

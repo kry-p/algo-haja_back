@@ -8,12 +8,12 @@ const group = new Router();
 group.use('/ps', ps.routes());
 
 // PUT methods
-group.put('/', groupCtrl.createGroup);
+group.put('/', checkLoggedIn, groupCtrl.createGroup);
 
 // PATCH methods
-group.patch('/', checkGroupExists, groupCtrl.updateGroup);
+group.patch('/', checkLoggedIn, checkGroupExists, groupCtrl.updateGroup);
 
 // DELETE methods
-group.delete('/', checkGroupExists, groupCtrl.deleteGroup);
+group.delete('/', checkLoggedIn, checkGroupExists, groupCtrl.deleteGroup);
 
 export default group;

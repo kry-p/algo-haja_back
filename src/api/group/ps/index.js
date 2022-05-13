@@ -1,16 +1,26 @@
 import Router from 'koa-router';
-import { checkGroupExists, checkPracticeExists } from '../../../lib/checker';
+import {
+  checkLoggedIn,
+  checkGroupExists,
+  checkPracticeExists,
+} from '../../../lib/checker';
 import * as psCtrl from './ps.ctrl';
 
 const ps = new Router();
 
 // PUT methods
-ps.put('/', checkGroupExists, psCtrl.createGroupPractice);
-ps.put('/pool', checkGroupExists, psCtrl.createGroupPracticeFromPool);
+ps.put('/', checkLoggedIn, checkGroupExists, psCtrl.createGroupPractice);
+ps.put(
+  '/pool',
+  checkLoggedIn,
+  checkGroupExists,
+  psCtrl.createGroupPracticeFromPool,
+);
 
 // PATCH methods
 ps.patch(
   '/',
+  checkLoggedIn,
   checkGroupExists,
   checkPracticeExists,
   psCtrl.updateGroupPractice,
@@ -18,6 +28,7 @@ ps.patch(
 // DELETE methods
 ps.delete(
   '/',
+  checkLoggedIn,
   checkGroupExists,
   checkPracticeExists,
   psCtrl.deleteGroupPractice,

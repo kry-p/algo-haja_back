@@ -1,3 +1,7 @@
+/*
+ * 그룹 정보 스키마
+ */
+// Mongoose
 import mongoose, { Schema } from 'mongoose';
 import arrayUniquePlugin from 'mongoose-unique-array';
 

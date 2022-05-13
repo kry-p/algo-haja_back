@@ -1,8 +1,10 @@
+/*
+ * 인증 API
+ */
 import Joi from 'joi';
 
 import User from '../../models/user';
 import { passwordRegex } from '../../lib/constants';
-// import sendMail from '../../lib/mail';
 
 /*
  * 회원가입

@@ -1,4 +1,9 @@
+/*
+ * 사용자 정보 스키마
+ */
+// Mongoose
 import mongoose, { Schema } from 'mongoose';
+// Authentication
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -25,15 +30,14 @@ const UserSchema = new Schema({
   },
 });
 
+// Methods
+// 비밀번호 변경
 UserSchema.methods.setPassword = async function (password) {
   const hash = await bcrypt.hash(password, 10);
   this.hashedPassword = hash;
 };
 
-UserSchema.methods.setEmailVerified = function (verified) {
-  this.isEmailVerified = verified;
-};
-
+// 이메일 인증 토큰 생성
 UserSchema.methods.createVerificationToken = function () {
   this.emailVerificationToken = crypto
     .createHash('sha256')
@@ -41,16 +45,19 @@ UserSchema.methods.createVerificationToken = function () {
     .digest('hex');
 };
 
+// 인증토큰 검증
 UserSchema.methods.checkEmailToken = function (token) {
   const result = this.base.emailVerificationToken === token;
   return result;
 };
 
+// 비밀번호 검증
 UserSchema.methods.checkPassword = async function (password) {
   const result = await bcrypt.compare(password, this.hashedPassword);
   return result;
 };
 
+// 반환 데이터 처리
 UserSchema.methods.serialize = function () {
   const data = this.toJSON();
   delete data.hashedPassword;
@@ -62,6 +69,7 @@ UserSchema.methods.serialize = function () {
   return data;
 };
 
+// JWT 토큰 생성
 UserSchema.methods.generateToken = function () {
   const token = jwt.sign(
     {
@@ -76,14 +84,18 @@ UserSchema.methods.generateToken = function () {
   return token;
 };
 
+// Statics
+// ID로 사용자 찾기
 UserSchema.statics.findByUsername = function (username) {
   return this.findOne({ username: username });
 };
 
+// 이메일로 사용자 찾기
 UserSchema.statics.findByEmail = function (email) {
   return this.findOne({ email: email });
 };
 
+// 이메일 인증여부 검증
 UserSchema.statics.setEmailVerified = async function (username, verified) {
   await this.findOneAndUpdate(
     { username: username },
@@ -94,6 +106,7 @@ UserSchema.statics.setEmailVerified = async function (username, verified) {
   );
 };
 
+// 사용자를 관리자로 설정
 UserSchema.statics.setUserAdmin = async function (username, promoted) {
   await this.findOneAndUpdate(
     { username: username },
