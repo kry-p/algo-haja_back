@@ -1,5 +1,6 @@
 import Problem from '../../models/problem';
 import User from '../../models/user';
+import Group from '../../models/group';
 
 /*
  * 문제 추가
@@ -110,6 +111,32 @@ export const findUserTried = async (ctx) => {
       .exec();
 
     ctx.body = problem;
+  } catch (err) {
+    ctx.throw(500, err);
+  }
+};
+
+/*
+ * 진행 중인 그룹 연습 문제 조회
+ * POST - /api/problem/group
+ */
+export const getGroupProblem = async (ctx) => {
+  const { groupName } = ctx.request.body;
+  const { user } = ctx.state;
+
+  if (!user || !groupName) {
+    ctx.status = 401;
+    return;
+  }
+  try {
+    const group = await Group.findOne({ groupName });
+    // 그룹 멤버가 아닐 때
+    if (!group.member.includes(user.username)) {
+      ctx.status = 401;
+      return;
+    }
+    ctx.status = 200;
+    ctx.body = group.practice;
   } catch (err) {
     ctx.throw(500, err);
   }
