@@ -16,7 +16,6 @@ ps.put(
   checkGroupExists,
   psCtrl.createGroupPracticeFromPool,
 );
-
 // PATCH methods
 ps.patch(
   '/',
@@ -33,5 +32,7 @@ ps.delete(
   checkPracticeExists,
   psCtrl.deleteGroupPractice,
 );
+// POST methods
+ps.post('/list', checkLoggedIn, checkGroupExists, psCtrl.getGroupPracticeList);
 
 export default ps;

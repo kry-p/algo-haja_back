@@ -30,6 +30,32 @@ export const createGroupPractice = async (ctx) => {
 };
 
 /*
+ * 그룹 연습 목록 가져오기
+ * POST - /api/group/ps/list
+ */
+export const getGroupPracticeList = async (ctx) => {
+  const { groupName } = ctx.request.body;
+
+  if (!groupName) {
+    ctx.status = 401;
+    return;
+  }
+
+  try {
+    // 찾는 그룹이 있는지 체크
+    const group = await Group.findOne({ groupName });
+    if (!group) {
+      ctx.status = 401;
+      return;
+    }
+    ctx.body = group.practice;
+    ctx.status = 200;
+  } catch (err) {
+    ctx.throw(500, err);
+  }
+};
+
+/*
  * 문제 풀에서 그룹 연습 생성
  * PUT - /api/group/ps/pool
  */
