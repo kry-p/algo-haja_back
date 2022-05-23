@@ -50,3 +50,15 @@ export const checkPracticeExists = async (ctx, next) => {
   }
   return next();
 };
+
+// 닉네임 중복 여부
+export const checkNicknameDuplicated = async (ctx, next) => {
+  const { nickname } = ctx.request.body;
+  const user = await User.findByNickname(nickname);
+
+  if (user) {
+    ctx.status = 401;
+    return;
+  }
+  return next();
+};

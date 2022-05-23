@@ -57,7 +57,7 @@ export const register = async (ctx) => {
     await user.setPassword(password);
     await user.save();
 
-    ctx.body = user.serialize();
+    ctx.body = user.serializeAllData();
 
     const token = user.generateToken();
     ctx.cookies.set('access_token', token, {
@@ -90,7 +90,7 @@ export const login = async (ctx) => {
       ctx.status = 401;
       return;
     }
-    ctx.body = user.serialize();
+    ctx.body = user.serializeAllData();
     const token = user.generateToken();
     ctx.cookies.set('access_token', token, {
       maxAge: 1000 * 60 * 60,
