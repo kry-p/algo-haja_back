@@ -10,3 +10,8 @@ export const clonePersonalRepository = async (link, username) => {
 export const cloneGroupRepository = async (link, groupName) => {
   await NodeGit.Clone.clone(link, `./repos/group/${groupName}`);
 };
+
+/*
+ * Update repository
+ */
+export const updateRepository = async (username) => {};

@@ -213,5 +213,6 @@ $RECYCLE.BIN/
 
 # Resource directory
 pictures/
+repos/
 
 # End of https://www.toptal.com/developers/gitignore/api/git,node,macos,windows
