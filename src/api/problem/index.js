@@ -8,9 +8,10 @@ const problem = new Router();
 problem.put('/', checkLoggedIn, problemCtrl.addProblem);
 
 // PATCH methods
-problem.patch('/', checkLoggedIn, problemCtrl.updateProblem);
-
+problem.patch('/info', checkLoggedIn, problemCtrl.updateProblemInfo);
+problem.patch('/rating', checkLoggedIn, problemCtrl.updateProblemRating);
 // POST methods
+problem.post('/rating', checkLoggedIn, problemCtrl.getUserRating);
 problem.post('/user-solved', checkLoggedIn, problemCtrl.getUserSolved);
 problem.post('/user-tried', checkLoggedIn, problemCtrl.getUserTried);
 
@@ -20,5 +21,8 @@ problem.post(
   checkGroupExists,
   problemCtrl.getGroupProblem,
 );
+
+//테스트용
+problem.post('/info/all', problemCtrl.updateProblemData);
 
 export default problem;

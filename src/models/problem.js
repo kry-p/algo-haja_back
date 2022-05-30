@@ -9,7 +9,7 @@ import arrayUniquePlugin from 'mongoose-unique-array';
 const ProblemSchema = new Schema({
   problemId: {
     type: Number,
-    unique: true,
+    required: true,
   },
   problemName: {
     type: String,
@@ -17,7 +17,6 @@ const ProblemSchema = new Schema({
   },
   solvedacTier: { type: Number, default: 0 },
   tags: [String],
-  rating: [{ username: String, rate: Number }],
 });
 
 ProblemSchema.plugin(arrayUniquePlugin);
