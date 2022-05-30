@@ -1,4 +1,5 @@
 import { clonePersonalRepository } from '../../lib/git';
+import { fetchUserSolved } from '../../lib/scrap';
 import User from '../../models/user';
 
 /*
@@ -58,38 +59,15 @@ export const changeUserPassword = async (ctx) => {
 };
 
 /*
- * 닉네임 중복 확인
- * POST - /api/user/nickname
- */
-export const checkNickname = async (ctx) => {
-  const { nickname } = ctx.request.body;
-
-  if (!nickname) {
-    ctx.status = 400;
-    return;
-  }
-
-  try {
-    const user = await User.findByNickname(nickname);
-    if (user) {
-      ctx.status = 401;
-      return;
-    }
-    ctx.status = 204; // No content, accepted
-  } catch (err) {
-    ctx.throw(500, err);
-  }
-};
-
-/*
  * 사용자 기본 정보 업데이트
  * PATCH - /api/user/basic
  */
 export const updateBasicInfo = async (ctx) => {
   const userdata = ctx.state.user;
-  const { password, nickname } = ctx.request.body;
+  // BOJ ID는 선택사항
+  const { password, bojId } = ctx.request.body;
 
-  if (!password || !nickname) {
+  if (!password) {
     ctx.status = 400;
     return;
   }
@@ -100,13 +78,13 @@ export const updateBasicInfo = async (ctx) => {
       ctx.status = 401;
       return;
     }
+
     const valid = await user.checkPassword(password);
     if (!valid) {
       ctx.status = 401;
       return;
     }
-
-    await user.setNickname(nickname);
+    if (bojId && bojId !== user.userData.bojId) await user.setBojId(bojId);
     await User.updateOne({ username: userdata.username }, user);
     ctx.status = 204; // No content, accepted
   } catch (err) {
@@ -118,7 +96,7 @@ export const updateBasicInfo = async (ctx) => {
  * Git 저장소 정보 업데이트
  * PATCH - /api/user/git
  */
-export const updateGitRepositoryinfo = async (ctx) => {
+export const updateGitRepositoryInfo = async (ctx) => {
   const userdata = ctx.state.user;
   const { repoUrl, ruleConstant } = ctx.request.body;
 
@@ -139,15 +117,63 @@ export const updateGitRepositoryinfo = async (ctx) => {
       ctx.status = 400;
       return;
     }
-    await User.updateOne({
-      $set: {
-        gitRepoInformation: {
-          linked: true,
-          repoURL: repoUrl,
-          linkRule: ruleConstant,
+    await User.updateOne(
+      { username: userdata.username },
+      {
+        $set: {
+          gitRepoInformation: {
+            linked: true,
+            repoURL: repoUrl,
+            linkRule: ruleConstant,
+          },
         },
       },
-    });
+    );
+    ctx.status = 204;
+  } catch (err) {
+    ctx.throw(500, err);
+  }
+};
+
+/*
+ * 사용자가 푼 문제 정보 업데이트
+ * PATCH - /api/user/solved
+ */
+export const updateSolvedProblem = async (ctx) => {
+  const { username } = ctx.request.body;
+
+  if (!username) {
+    ctx.status = 400;
+    return;
+  }
+
+  try {
+    const user = await User.findByUsername(username);
+    if (!user) {
+      ctx.status = 401;
+      return;
+    }
+
+    if (user.userData.bojId === '') {
+      ctx.status = 401;
+      return;
+    }
+
+    const solved = await fetchUserSolved(user.userData.bojId);
+    if (solved.error) {
+      ctx.status = 401;
+      return;
+    }
+
+    await User.findOneAndUpdate(
+      { username: username },
+      {
+        $set: {
+          'userData.solvedProblem': solved.data.solved,
+          'userData.triedProblem': solved.data.wrong,
+        },
+      },
+    );
     ctx.status = 204;
   } catch (err) {
     ctx.throw(500, err);

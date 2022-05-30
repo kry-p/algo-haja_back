@@ -41,7 +41,7 @@ export const register = async (ctx) => {
       isAdmin: false,
       isEmailVerified: false,
       userData: {
-        nickname: username,
+        bojId: '',
         group: [],
         solvedacRating: 0,
         solvedProblem: [],

@@ -25,6 +25,7 @@ def scrap_user(user):
 
     print(json.dumps({ 'solved': ac, 'wrong': wa }))
 
+
 if __name__ == "__main__":
     username = sys.argv[1]
     scrap_user(username)

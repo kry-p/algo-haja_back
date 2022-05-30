@@ -10,7 +10,6 @@ const jwtMiddleware = async (ctx, next) => {
     ctx.state.user = {
       _id: decoded._id,
       username: decoded.username,
-      nickname: decoded.nickname,
     };
 
     const now = Math.floor(Date.now() / 1000);

@@ -17,8 +17,8 @@ const UserSchema = new Schema({
   isEmailVerified: Boolean,
   isAdmin: Boolean,
   userData: {
-    nickname: String,
     group: [String],
+    bojId: String,
     solvedacRating: Number,
     solvedProblem: [Number],
     triedProblem: [Number],
@@ -37,9 +37,9 @@ UserSchema.methods.setPassword = async function (password) {
   this.hashedPassword = hash;
 };
 
-// 닉네임 변경
-UserSchema.methods.setNickname = async function (nickname) {
-  this.userData.nickname = nickname;
+// BOJ ID 변경
+UserSchema.methods.setBojId = async function (bojId) {
+  this.userData.bojId = bojId;
 };
 
 // 이메일 인증 토큰 생성
@@ -80,7 +80,6 @@ UserSchema.methods.generateToken = function () {
     {
       _id: this.id,
       username: this.username,
-      nickname: this.userData.nickname,
     },
     process.env.JWT_SECRET,
     {
@@ -109,11 +108,6 @@ UserSchema.statics.findByUsername = function (username) {
 // 이메일로 사용자 찾기
 UserSchema.statics.findByEmail = function (email) {
   return this.findOne({ email: email });
-};
-
-// 닉네임으로 사용자 찾기
-UserSchema.statics.findByNickname = function (nickname) {
-  return this.findOne({ 'userData.nickname': nickname });
 };
 
 // 이메일 인증여부 검증

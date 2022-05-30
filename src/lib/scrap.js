@@ -1,14 +1,22 @@
-const spawn = require('child_process').spawn;
+const spawn = require('await-spawn');
 const FILE_ROOT_DIR = process.cwd();
 
-export const fetchUserSolved = (username) => {
-  const result = spawn('python3', [
-    `${FILE_ROOT_DIR}/src/lib/scrap.py`,
-    username,
-  ]);
-
-  result.stdout.on('data', (result) => {
-    const json = JSON.parse(result.toString());
-    console.log(json);
-  });
+export const fetchUserSolved = async (username) => {
+  try {
+    const result = await spawn('python3', [
+      `${FILE_ROOT_DIR}/src/lib/scrap.py`,
+      username,
+    ]);
+    return {
+      result: 'success',
+      data: JSON.parse(result.toString()),
+      error: null,
+    };
+  } catch (e) {
+    return {
+      result: 'error',
+      data: null,
+      error: e,
+    };
+  }
 };
