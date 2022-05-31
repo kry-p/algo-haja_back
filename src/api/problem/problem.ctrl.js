@@ -2,7 +2,7 @@ import Problem from '../../models/problem';
 import User from '../../models/user';
 import Group from '../../models/group';
 import Rating from '../../models/rating';
-import { fetchProblemInfo } from '../../lib/solvedac';
+import { fetchProblemInfo } from '../../lib/external/solvedac';
 
 /*
  * 문제 추가

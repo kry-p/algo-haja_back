@@ -1,15 +1,23 @@
+/**
+ * 사용자 API
+ * @todo  Brute force 방어 적용
+ */
 import { clonePersonalRepository } from '../../lib/git';
-import { fetchUserSolved } from '../../lib/scrap';
+import { fetchUserSolved } from '../../lib/external/boj';
+import { fetchUserInfo } from '../../lib/external/solvedac';
 import User from '../../models/user';
 
-/*
- * 사용자 정보 조회
+/**
  * POST - /api/user/info
+ *
+ * @param   ctx.state.user
+ * @returns 성공 시 ctx.body로 사용자 정보
+ * @brief   사용자 정보를 제공합니다.
  */
 export const getUserInfo = async (ctx) => {
-  const user = ctx.state.user;
+  const { username } = ctx.state.user;
   try {
-    const data = await User.findByUsername(user.username);
+    const data = await User.findByUsername(username);
     if (!data) {
       ctx.status = 401;
       return;
@@ -21,12 +29,15 @@ export const getUserInfo = async (ctx) => {
   }
 };
 
-/*
- * 비밀번호 변경
+/**
  * POST - /api/user/password
+ *
+ * @param   ctx.request.body - password, newPassword, newPasswordConfirm
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   사용자 비밀번호를 변경합니다.
  */
 export const changeUserPassword = async (ctx) => {
-  const userdata = ctx.state.user;
+  const { username } = ctx.state.user;
   const { password, newPassword, newPasswordConfirm } = ctx.request.body;
 
   if (!password || !newPassword || !newPasswordConfirm) {
@@ -40,7 +51,7 @@ export const changeUserPassword = async (ctx) => {
   }
 
   try {
-    const user = await User.findByUsername(userdata.username);
+    const user = await User.findByUsername(username);
     if (!user) {
       ctx.status = 401;
       return;
@@ -51,19 +62,22 @@ export const changeUserPassword = async (ctx) => {
       return;
     }
     await user.setPassword(newPassword);
-    await User.updateOne({ username: userdata.username }, user);
+    await User.updateOne({ username }, user);
     ctx.status = 204;
   } catch (err) {
     ctx.throw(500, err);
   }
 };
 
-/*
- * 사용자 기본 정보 업데이트
+/**
  * PATCH - /api/user/basic
+ *
+ * @param   ctx.request.body - password, ( bojId )
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   사용자 기본 정보를 업데이트합니다.
  */
 export const updateBasicInfo = async (ctx) => {
-  const userdata = ctx.state.user;
+  const { username } = ctx.state.user;
   // BOJ ID는 선택사항
   const { password, bojId } = ctx.request.body;
 
@@ -71,33 +85,54 @@ export const updateBasicInfo = async (ctx) => {
     ctx.status = 400;
     return;
   }
-
   try {
-    const user = await User.findByUsername(userdata.username);
+    const user = await User.findByUsername(username);
     if (!user) {
       ctx.status = 401;
       return;
     }
-
     const valid = await user.checkPassword(password);
     if (!valid) {
       ctx.status = 401;
       return;
     }
-    if (bojId && bojId !== user.userData.bojId) await user.setBojId(bojId);
-    await User.updateOne({ username: userdata.username }, user);
+    if (bojId && bojId !== user.userData.bojId) {
+      await user.setBojId(bojId);
+      const solvedacUserData = await fetchUserInfo(bojId);
+
+      // solved.ac에서 정보 받아오기
+      if (solvedacUserData.error) {
+        await user.setRequestSucceed('solvedac', false);
+      } else {
+        await user.setRequestSucceed('solvedac', true);
+        await user.setSolvedacTier(solvedacUserData.data.tier);
+      }
+
+      // BOJ에서 정보 받아오기
+      const solved = await fetchUserSolved(bojId);
+      if (solved.error) {
+        await user.setRequestSucceed('boj', false);
+      } else {
+        await user.setRequestSucceed('boj', true);
+        await user.setUserSolved(solved);
+      }
+    }
+    await User.updateOne({ username }, user);
     ctx.status = 204; // No content, accepted
   } catch (err) {
     ctx.throw(500, err);
   }
 };
 
-/*
- * Git 저장소 정보 업데이트
+/**
  * PATCH - /api/user/git
+ *
+ * @param   ctx.request.body - repoUrl, ruleConstant
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   Git 저장소 정보를 업데이트하고 해당 저장소를 복제합니다.
  */
 export const updateGitRepositoryInfo = async (ctx) => {
-  const userdata = ctx.state.user;
+  const { username } = ctx.state.user;
   const { repoUrl, ruleConstant } = ctx.request.body;
 
   if (!repoUrl || !ruleConstant) {
@@ -106,19 +141,19 @@ export const updateGitRepositoryInfo = async (ctx) => {
   }
 
   try {
-    const user = await User.findByUsername(userdata.username);
+    const user = await User.findByUsername(username);
     if (!user) {
       ctx.status = 401;
       return;
     }
     try {
-      await clonePersonalRepository(repoUrl, userdata.username);
+      await clonePersonalRepository(repoUrl, username);
     } catch (gitError) {
       ctx.status = 400;
       return;
     }
     await User.updateOne(
-      { username: userdata.username },
+      { username },
       {
         $set: {
           gitRepoInformation: {
@@ -135,46 +170,38 @@ export const updateGitRepositoryInfo = async (ctx) => {
   }
 };
 
-/*
- * 사용자가 푼 문제 정보 업데이트
+/**
  * PATCH - /api/user/solved
+ *
+ * @param   ctx.state.user (required)
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   BOJ ID가 있는 경우 해당 사용자 정보에서 푼 문제 정보를 가져옵니다.
  */
 export const updateSolvedProblem = async (ctx) => {
-  const { username } = ctx.request.body;
-
+  const { username } = ctx.state.user;
   if (!username) {
     ctx.status = 400;
     return;
   }
-
   try {
     const user = await User.findByUsername(username);
     if (!user) {
       ctx.status = 401;
       return;
     }
-
     if (user.userData.bojId === '') {
       ctx.status = 401;
       return;
     }
-
     const solved = await fetchUserSolved(user.userData.bojId);
     if (solved.error) {
+      user.setRequestSucceed('boj', false);
       ctx.status = 401;
-      return;
+    } else {
+      await user.setUserSolved(solved);
+      await User.updateOne({ username }, user);
+      ctx.status = 204;
     }
-
-    await User.findOneAndUpdate(
-      { username: username },
-      {
-        $set: {
-          'userData.solvedProblem': solved.data.solved,
-          'userData.triedProblem': solved.data.wrong,
-        },
-      },
-    );
-    ctx.status = 204;
   } catch (err) {
     ctx.throw(500, err);
   }

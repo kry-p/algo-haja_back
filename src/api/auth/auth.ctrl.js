@@ -1,14 +1,18 @@
-/*
+/**
  * 인증 API
+ * @todo  회원 탈퇴 기능 추가
  */
 import Joi from 'joi';
 
 import User from '../../models/user';
 import { passwordRegex } from '../../lib/constants';
 
-/*
- * 회원가입
+/**
  * POST - /api/auth/register
+ *
+ * @param   ctx.request.body - username, email, password
+ * @returns 성공 시 ctx.body로 사용자 정보
+ * @brief   입력받은 정보를 회원으로 등록합니다.
  */
 export const register = async (ctx) => {
   const schema = Joi.object().keys({
@@ -47,6 +51,10 @@ export const register = async (ctx) => {
         solvedProblem: [],
         triedProblem: [],
       },
+      latestRequestSucceed: {
+        boj: null,
+        solvedac: null,
+      },
       gitRepoInformation: {
         linked: false,
         repoURL: '',
@@ -56,9 +64,7 @@ export const register = async (ctx) => {
     user.createVerificationToken();
     await user.setPassword(password);
     await user.save();
-
     ctx.body = user.serializeAllData();
-
     const token = user.generateToken();
     ctx.cookies.set('access_token', token, {
       maxAge: 1000 * 60 * 60,
@@ -69,9 +75,12 @@ export const register = async (ctx) => {
   }
 };
 
-/*
- * 로그인
+/**
  * POST - /api/auth/login
+ *
+ * @param   ctx.request.body - username, password
+ * @returns 성공 시 ctx.body로 사용자 정보
+ * @brief   입력받은 정보로 로그인합니다.
  */
 export const login = async (ctx) => {
   const { username, password } = ctx.request.body;
@@ -101,9 +110,23 @@ export const login = async (ctx) => {
   }
 };
 
-/*
- * 관리자 권한 부여 / 해제
+/**
+ * POST - /api/auth/logout
+ *
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   현재 로그인된 사용자를 로그아웃합니다.
+ */
+export const logout = async (ctx) => {
+  ctx.cookies.set('access_token');
+  ctx.status = 204; // No content
+};
+
+/**
  * POST - /api/auth/promote
+ *
+ * @param   ctx.request.body - promouser, value
+ * @returns 성공 시 HTTP 204 Response
+ * @brief   입력받은 사용자를 관리자로 승격합니다.
  */
 export const promote = async (ctx) => {
   const { promouser, value } = ctx.request.body;
@@ -141,9 +164,12 @@ export const promote = async (ctx) => {
   }
 };
 
-/*
- * 세션 체크
+/**
  * GET - /api/auth/check
+ *
+ * @param   ctx.state - user
+ * @returns 성공 시 사용자 정보
+ * @brief   정상 로그인되어 있는지 세션 정보를 대조합니다.
  */
 export const check = async (ctx) => {
   const { user } = ctx.state;
@@ -154,18 +180,12 @@ export const check = async (ctx) => {
   ctx.body = user;
 };
 
-/*
- * 로그아웃
- * POST - /api/auth/logout
- */
-export const logout = async (ctx) => {
-  ctx.cookies.set('access_token');
-  ctx.status = 204; // No content
-};
-
-/*
- * 메일 인증
+/**
  * GET - /api/auth/verify
+ *
+ * @param   ctx.request.query - username, token
+ * @returns 성공 시 HTTP 200 Response
+ * @brief   이메일 인증 토큰을 대조합니다.
  */
 export const verify = async (ctx) => {
   const { username, token } = ctx.request.query;

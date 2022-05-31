@@ -11,6 +11,6 @@ user.post('/password', checkLoggedIn, userCtrl.changeUserPassword);
 // PATCH methods
 user.patch('/basic', checkLoggedIn, userCtrl.updateBasicInfo);
 user.patch('/git', checkLoggedIn, userCtrl.updateGitRepositoryInfo);
-user.patch('/solved', userCtrl.updateSolvedProblem);
+user.patch('/solved', checkLoggedIn, userCtrl.updateSolvedProblem);
 
 export default user;

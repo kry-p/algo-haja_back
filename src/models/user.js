@@ -23,6 +23,10 @@ const UserSchema = new Schema({
     solvedProblem: [Number],
     triedProblem: [Number],
   },
+  latestRequestSucceed: {
+    boj: Boolean,
+    solvedac: Boolean,
+  },
   gitRepoInformation: {
     linked: Boolean,
     repoURL: String,
@@ -40,6 +44,22 @@ UserSchema.methods.setPassword = async function (password) {
 // BOJ ID 변경
 UserSchema.methods.setBojId = async function (bojId) {
   this.userData.bojId = bojId;
+};
+
+// 마지막 작업 성공 여부 기록
+UserSchema.methods.setRequestSucceed = async function (site, succeed) {
+  this.latestRequestSucceed[site] = succeed;
+};
+
+// solved.ac 티어 반영
+UserSchema.methods.setSolvedacTier = async function (tier) {
+  this.userData.solvedacRating = tier;
+};
+
+// 푼 문제 정보 반영
+UserSchema.methods.setUserSolved = async function (solved) {
+  this.userData.solvedProblem = solved.data.solved;
+  this.userData.triedProblem = solved.data.wrong;
 };
 
 // 이메일 인증 토큰 생성
@@ -69,6 +89,7 @@ UserSchema.methods.serializeAllData = function () {
   delete data.emailVerificationToken;
   delete data.isEmailVerified;
   delete data.userData;
+  delete data.latestRequestSucceed;
   delete data.gitRepoInformation;
 
   return data;
