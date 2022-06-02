@@ -19,6 +19,7 @@ const UserSchema = new Schema({
   userData: {
     group: [String],
     bojId: String,
+    sourceOpened: Boolean,
     solvedacRating: Number,
     solvedProblem: [Number],
     triedProblem: [Number],
@@ -29,7 +30,8 @@ const UserSchema = new Schema({
   },
   gitRepoInformation: {
     linked: Boolean,
-    repoURL: String,
+    repoUrl: String,
+    bojDir: String,
     linkRule: Number,
   },
 });

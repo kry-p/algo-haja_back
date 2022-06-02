@@ -25,8 +25,9 @@ const GroupSchema = new Schema({
   ],
   gitRepoInformation: {
     linked: Boolean,
-    repoURL: String,
+    repoUrl: String,
     linkRule: Number,
+    bojDir: String,
     memberName: [{ username: String, nameInRepo: String }],
   },
 });

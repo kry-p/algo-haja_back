@@ -5,7 +5,7 @@ import Group from '../../models/group';
  * PUT - /api/group
  */
 export const createGroup = async (ctx) => {
-  const { groupName, isPublic, manager, member } = ctx.request.body;
+  const { groupName, isPublic, manager, member, bojDir } = ctx.request.body;
 
   // 필수 항목 체크
   if (!groupName || !isPublic || !manager || !member) {
@@ -28,8 +28,9 @@ export const createGroup = async (ctx) => {
       pool: [],
       gitRepoInformation: {
         linked: false,
-        repoURL: '',
+        repoUrl: '',
         linkRule: -1,
+        bojDir: bojDir ? `.${bojDir}` : './',
         memberName: [],
       },
     });

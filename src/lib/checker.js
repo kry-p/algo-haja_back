@@ -2,6 +2,7 @@
  * 검증 미들웨어
  */
 import Group from '../models/group';
+import Solve from '../models/solve';
 import User from '../models/user';
 
 /**

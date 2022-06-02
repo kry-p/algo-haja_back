@@ -3,6 +3,33 @@ export const passwordRegex = RegExp(
   /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&;()+\-_=/~`[\]{}'".,])[A-Za-z\d@$!%*#?&;()+\-_=/~`[\]{}'".,]{8,}$/,
 );
 
+// 언어별 소스코드 확장자
+export const EXT_LANG = new Map([
+  ['c', 'C / C++'],
+  ['cpp', 'C++'],
+  ['cxx', 'C++'],
+  ['cc', 'C++'],
+  ['py', 'Python'],
+  ['php', 'PHP'],
+  ['java', 'Java'],
+  ['js', 'JavaScript'],
+  ['ts', 'TypeScript'],
+  ['sh', 'Shell'],
+  ['vb', 'Visual Basic'],
+  ['vbs', 'Visual Basic'],
+  ['cs', 'C#'],
+  ['r', 'R'],
+  ['luac', 'lua'],
+  ['perl', 'perl'],
+  ['go', 'Go'],
+  ['rs', 'Rust'],
+  ['kt', 'Kotlin'],
+  ['m', 'Objective-C'],
+  ['mm', 'Objective-C++'],
+  ['swift', 'Swift'],
+  ['rb', 'Ruby'],
+]);
+
 // Enums
 // Git 저장소 모드
 export const GIT_RULE_1 = 1;

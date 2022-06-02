@@ -46,6 +46,7 @@ export const register = async (ctx) => {
       isEmailVerified: false,
       userData: {
         bojId: '',
+        sourceOpened: false,
         group: [],
         solvedacRating: 0,
         solvedProblem: [],
@@ -57,7 +58,8 @@ export const register = async (ctx) => {
       },
       gitRepoInformation: {
         linked: false,
-        repoURL: '',
+        repoUrl: '',
+        bojDir: null,
         linkRule: -1,
       },
     });

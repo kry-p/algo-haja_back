@@ -133,7 +133,7 @@ export const updateBasicInfo = async (ctx) => {
  */
 export const updateGitRepositoryInfo = async (ctx) => {
   const { username } = ctx.state.user;
-  const { repoUrl, ruleConstant } = ctx.request.body;
+  const { repoUrl, ruleConstant, bojDir } = ctx.request.body;
 
   if (!repoUrl || !ruleConstant) {
     ctx.status = 400;
@@ -158,7 +158,8 @@ export const updateGitRepositoryInfo = async (ctx) => {
         $set: {
           gitRepoInformation: {
             linked: true,
-            repoURL: repoUrl,
+            repoUrl: repoUrl,
+            bojDir: bojDir ? bojDir : './',
             linkRule: ruleConstant,
           },
         },
