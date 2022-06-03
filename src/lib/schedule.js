@@ -5,7 +5,7 @@ import cron from 'node-cron';
 import User from '../models/user';
 import Problem from '../models/problem';
 import { fetchUserSolved } from './external/boj';
-import { fetchProblemInfo } from './external/solvedac';
+import { fetchProblemInfo, fetchUserInfo } from './external/solvedac';
 import { logger } from '../config/winston';
 
 // 작업 큐
@@ -75,9 +75,10 @@ const retrieveBojUserData = async (bojId) => {
   );
   bojQueue.delete(bojId);
   const info = await fetchUserSolved(bojId);
+  const tier = await fetchUserInfo(bojId);
 
   // 가져오는 데 실패
-  if (info.error) {
+  if (info.error || tier.error) {
     logger.error(`error code ${info.error.response.status}`);
     logger.warn(
       `BOJ User data retriever: ${username} 사용자 정보를 가져올 수 없습니다. 건너뜁니다.`,
@@ -92,6 +93,7 @@ const retrieveBojUserData = async (bojId) => {
     logger.error(`추가하려는 사용자 ${username}가 없습니다. 건너뜁니다.`);
   }
   await user.setUserSolved(info);
+  await user.setSolvedacTier(tier.data.tier);
   await User.updateOne({ username }, user);
   logger.info(
     `BOJ User data retriever: ${username} 사용자 정보를 업데이트했습니다.`,
