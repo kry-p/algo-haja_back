@@ -10,7 +10,11 @@ import Router from 'koa-router';
 import mongoose from 'mongoose';
 // API and middlewares
 import api from './api';
+
 import jwtMiddleware from './lib/jwtMiddleware';
+
+import { runScheduledJob } from './lib/schedule';
+import { logger } from './config/winston';
 
 const app = new Koa();
 const router = new Router();
@@ -21,13 +25,18 @@ require('dotenv').config();
 const { PORT, MONGO_URI } = process.env;
 const port = PORT || 4000;
 
+// cron
+runScheduledJob();
+
 mongoose
   .connect(MONGO_URI)
   .then(() => {
-    console.log('Connected to MongoDB');
+    logger.info('MongoDB 데이터베이스에 연결되었습니다.');
   })
   .catch((e) => {
-    console.error(e);
+    logger.error(
+      `데이터베이스에 연결할 수 없습니다. 오류 내용은 다음과 같습니다.\n${e}`,
+    );
   });
 
 router.use('/api', api.routes());
@@ -37,5 +46,6 @@ app.use(jwtMiddleware);
 
 app.use(router.routes()).use(router.allowedMethods());
 app.listen(port, () => {
-  console.log(`Listening to port ${port}`);
+  logger.info('알고하자 서버가 시작되었습니다.');
+  logger.info(`${port}번 포트로 접근할 수 있습니다.`);
 });
