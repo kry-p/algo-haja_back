@@ -8,19 +8,15 @@ import { fetchUserSolved } from './external/boj';
 import { fetchProblemInfo, fetchUserInfo } from './external/solvedac';
 import { logger } from '../config/winston';
 
-// 작업 큐
-let bojQueue = new Map();
-let solvedacQueue = new Map();
-
 // 일정 시간 Suspend (API call limit 방지)
 const sleep = (time) => new Promise((res) => setTimeout(res, time));
 
 // 정보 업데이트 요청 시 가장 앞으로 보냄
 export const addToSolvedacQueue = (problemId) => {
-  solvedacQueue.set(problemId, 0);
+  global.solvedacQueue.set(problemId, 0);
 };
 export const addToBojQueue = (id) => {
-  bojQueue.set(id, 0);
+  global.bojQueue.set(id, 0);
 };
 
 export const runScheduledJob = async () => {
@@ -32,10 +28,10 @@ export const runScheduledJob = async () => {
   // 문제 정보 업데이트
   cron.schedule('* * * * *', async () => {
     await sleep(5000);
-    solvedacQueue = new Map(
-      [...solvedacQueue.entries()].sort((a, b) => a[1] - b[1]),
+    global.solvedacQueue = new Map(
+      [...global.solvedacQueue.entries()].sort((a, b) => a[1] - b[1]),
     );
-    const keys = Array.from(solvedacQueue.keys());
+    const keys = Array.from(global.solvedacQueue.keys());
     for (let i = 0; i < (keys.length > 10 ? 10 : keys.length); i++) {
       const problem = keys[i];
       await retrieveProblemData(problem);
@@ -46,8 +42,10 @@ export const runScheduledJob = async () => {
   // BOJ 정보 업데이트
   cron.schedule('* * * * *', async () => {
     await sleep(5000);
-    bojQueue = new Map([...bojQueue.entries()].sort((a, b) => a[1] - b[1]));
-    const keys = Array.from(bojQueue.keys());
+    global.bojQueue = new Map(
+      [...global.bojQueue.entries()].sort((a, b) => a[1] - b[1]),
+    );
+    const keys = Array.from(global.bojQueue.keys());
     for (let i = 0; i < (keys.length > 5 ? 5 : keys.length); i++) {
       const bojId = keys[i];
       await retrieveBojUserData(bojId);
@@ -61,42 +59,50 @@ const getBojUserList = async () => {
   const bojUserList = users
     .filter((user) => user.userData.bojId !== '')
     .map((user) => user.userData.bojId);
-  bojUserList.forEach((user) => bojQueue.set(user, new Date()));
+  bojUserList.forEach((user) => global.bojQueue.set(user, new Date()));
 };
 
 const retrieveBojUserData = async (bojId) => {
   const user = await User.findOne({ 'userdata.bojId': bojId });
   if (!user) {
-    logger.error(`추가하려는 사용자 ${username}가 없습니다. 건너뜁니다.`);
+    logger.error(
+      `BOJ / solved.ac User data retriever: 추가하려는 사용자 ${username}가 없습니다. 건너뜁니다.`,
+    );
   }
   const username = user.username;
   logger.info(
-    `BOJ User data retriever: ${username} 사용자의 정보를 가져옵니다...`,
+    `BOJ / solved.ac User data retriever: ${username} 사용자의 정보를 가져옵니다...`,
   );
-  bojQueue.delete(bojId);
-  const info = await fetchUserSolved(bojId);
-  const tier = await fetchUserInfo(bojId);
+  global.bojQueue.delete(bojId);
+  const solvedData = await fetchUserInfo(bojId);
+  const bojData = await fetchUserSolved(bojId);
 
-  // 가져오는 데 실패
-  if (info.error || tier.error) {
-    logger.error(`error code ${info.error.response.status}`);
-    logger.warn(
-      `BOJ User data retriever: ${username} 사용자 정보를 가져올 수 없습니다. 건너뜁니다.`,
-    );
+  if (solvedData.error) {
+    logger.error(`error code ${solvedData.error.response.status}`);
+    await user.setRequestSucceed('solvedac', false);
   } else {
-    logger.info(
-      `BOJ User data retriever: ${username} 사용자 정보를 가져왔습니다.`,
+    await user.setRequestSucceed('solvedac', true);
+    await user.setSolvedacTier(solvedData.data.tier);
+  }
+  // 가져오는 데 실패
+  if (bojData.error) {
+    logger.error(
+      `BOJ User data retriever: error code ${bojData.error.response.status}`,
     );
+    await user.setRequestSucceed('boj', false);
+  } else {
+    await user.setRequestSucceed('boj', true);
+    await user.setUserSolved(bojData);
   }
 
-  if (!user) {
-    logger.error(`추가하려는 사용자 ${username}가 없습니다. 건너뜁니다.`);
-  }
-  await user.setUserSolved(info);
-  await user.setSolvedacTier(tier.data.tier);
   await User.updateOne({ username }, user);
   logger.info(
-    `BOJ User data retriever: ${username} 사용자 정보를 업데이트했습니다.`,
+    `BOJ / solved.ac User data retriever: ${username} 사용자 정보를 업데이트했습니다.`,
+  );
+  logger.info(
+    `BOJ / solved.ac User data retriever: BOJ: ${
+      bojData.error ? '실패' : '성공'
+    }, solved.ac: ${solvedData.error ? '실패' : '성공'}.`,
   );
 };
 
@@ -116,14 +122,14 @@ const getProblemList = async () => {
   // 이미 있는 정보는 다시 가져오지 않음
   problems.map((problem) => problemSet.delete(problem.problemId));
   const problemList = [...problemSet];
-  problemList.forEach((item) => solvedacQueue.set(item, new Date()));
+  problemList.forEach((item) => global.solvedacQueue.set(item, new Date()));
 };
 
 const retrieveProblemData = async (problemId) => {
   logger.info(
     `Problem info retriever: ${problemId}번 문제 정보를 가져옵니다...`,
   );
-  solvedacQueue.delete(problemId);
+  global.solvedacQueue.delete(problemId);
   const info = await fetchProblemInfo(problemId);
 
   // 가져오는 데 실패

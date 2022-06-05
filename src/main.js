@@ -25,6 +25,13 @@ require('dotenv').config();
 const { PORT, MONGO_URI } = process.env;
 const port = PORT || 4000;
 
+// 작업 큐
+let bojQueue = new Map();
+let solvedacQueue = new Map();
+
+global.bojQueue = bojQueue;
+global.solvedacQueue = solvedacQueue;
+
 // cron
 runScheduledJob();
 

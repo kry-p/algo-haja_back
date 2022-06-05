@@ -36,10 +36,6 @@ export const fetchProblemInfo = async (problemNo) => {
   }
 };
 
-/*
- * 1. 사용자 정보가 업데이트되어 BOJ ID가 바뀐 경우
- * 2. 업데이트 요청한 경우
- */
 /**
  * 사용자 정보를 solved.ac API에 요청
  * @param   {String} bojId

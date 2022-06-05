@@ -4,8 +4,8 @@
  */
 import { clonePersonalRepository } from '../../lib/git';
 import { fetchUserSolved } from '../../lib/external/boj';
-import { fetchUserInfo } from '../../lib/external/solvedac';
 import User from '../../models/user';
+import { addToBojQueue } from '../../lib/schedule';
 
 /**
  * POST - /api/user/info
@@ -98,27 +98,10 @@ export const updateBasicInfo = async (ctx) => {
     }
     if (bojId && bojId !== user.userData.bojId) {
       await user.setBojId(bojId);
-      const solvedacUserData = await fetchUserInfo(bojId);
-
-      // solved.ac에서 정보 받아오기
-      if (solvedacUserData.error) {
-        await user.setRequestSucceed('solvedac', false);
-      } else {
-        await user.setRequestSucceed('solvedac', true);
-        await user.setSolvedacTier(solvedacUserData.data.tier);
-      }
-
-      // BOJ에서 정보 받아오기
-      const solved = await fetchUserSolved(bojId);
-      if (solved.error) {
-        await user.setRequestSucceed('boj', false);
-      } else {
-        await user.setRequestSucceed('boj', true);
-        await user.setUserSolved(solved);
-      }
+      addToBojQueue(bojId);
     }
     await User.updateOne({ username }, user);
-    ctx.status = 204; // No content, accepted
+    ctx.status = 202; // accepted
   } catch (err) {
     ctx.throw(500, err);
   }
@@ -194,15 +177,11 @@ export const updateSolvedProblem = async (ctx) => {
       ctx.status = 401;
       return;
     }
-    const solved = await fetchUserSolved(user.userData.bojId);
-    if (solved.error) {
-      user.setRequestSucceed('boj', false);
-      ctx.status = 401;
-    } else {
-      await user.setUserSolved(solved);
-      await User.updateOne({ username }, user);
-      ctx.status = 204;
-    }
+
+    await user.setBojId(user.userData.bojId);
+    addToBojQueue(user.bojId);
+    await User.updateOne({ username }, user);
+    ctx.status = 202;
   } catch (err) {
     ctx.throw(500, err);
   }
