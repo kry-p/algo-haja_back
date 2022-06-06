@@ -22,7 +22,4 @@ problem.post(
   problemCtrl.getGroupProblem,
 );
 
-//테스트용
-problem.post('/info/all', problemCtrl.updateProblemData);
-
 export default problem;
