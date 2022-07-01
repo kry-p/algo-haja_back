@@ -4,22 +4,26 @@ import * as problemCtrl from './problem.ctrl';
 
 const problem = new Router();
 
-// PUT methods
-problem.put('/', checkLoggedIn, problemCtrl.addProblem);
-
 // PATCH methods
-problem.patch('/info', checkLoggedIn, problemCtrl.updateProblemInfo);
 problem.patch('/rating', checkLoggedIn, problemCtrl.updateProblemRating);
+
 // POST methods
+problem.post(
+  '/list-user',
+  checkLoggedIn,
+  problemCtrl.getUserSolvedOrTriedProblem,
+);
 problem.post('/rating', checkLoggedIn, problemCtrl.getUserRating);
 problem.post('/user-solved', checkLoggedIn, problemCtrl.getUserSolved);
 problem.post('/user-tried', checkLoggedIn, problemCtrl.getUserTried);
-
+problem.post('/info', problemCtrl.updateProblemInfo);
 problem.post(
   '/group',
   checkLoggedIn,
   checkGroupExists,
   problemCtrl.getGroupProblem,
 );
+// GET methods
+problem.get('/:problemId', problemCtrl.getProblem);
 
 export default problem;

@@ -2,10 +2,14 @@
  * 사용자 API
  * @todo  Brute force 방어 적용
  */
-import { clonePersonalRepository } from '../../lib/git';
-import { fetchUserSolved } from '../../lib/external/boj';
 import User from '../../models/user';
+import { clonePersonalRepository } from '../../lib/git';
 import { addToBojQueue } from '../../lib/schedule';
+import { bojIdRegex, passwordRegex, GIT_RULE_1 } from '../../lib/constants';
+// URI validator
+import { isUri } from 'valid-url';
+// Path validator
+import isValid from 'is-valid-path';
 
 /**
  * POST - /api/user/info
@@ -49,6 +53,10 @@ export const changeUserPassword = async (ctx) => {
     ctx.status = 401;
     return;
   }
+  if (!passwordRegex.test(newPassword)) {
+    ctx.status = 400;
+    return;
+  }
 
   try {
     const user = await User.findByUsername(username);
@@ -78,17 +86,20 @@ export const changeUserPassword = async (ctx) => {
  */
 export const updateBasicInfo = async (ctx) => {
   const { username } = ctx.state.user;
-  // BOJ ID는 선택사항
   const { password, bojId } = ctx.request.body;
 
-  if (!password) {
+  if (!password || !bojId) {
+    ctx.status = 400;
+    return;
+  }
+  if (!bojIdRegex.test(bojId)) {
     ctx.status = 400;
     return;
   }
   try {
     const user = await User.findByUsername(username);
     if (!user) {
-      ctx.status = 401;
+      ctx.status = 404;
       return;
     }
     const valid = await user.checkPassword(password);
@@ -96,7 +107,7 @@ export const updateBasicInfo = async (ctx) => {
       ctx.status = 401;
       return;
     }
-    if (bojId && bojId !== user.userData.bojId) {
+    if (bojId !== user.userData.bojId) {
       await user.setBojId(bojId);
       addToBojQueue(bojId);
     }
@@ -117,12 +128,14 @@ export const updateBasicInfo = async (ctx) => {
 export const updateGitRepositoryInfo = async (ctx) => {
   const { username } = ctx.state.user;
   const { repoUrl, ruleConstant, bojDir } = ctx.request.body;
-
-  if (!repoUrl || !ruleConstant) {
+  if (!repoUrl) {
     ctx.status = 400;
     return;
   }
-
+  if (!(isUri(repoUrl) && isValid(bojDir))) {
+    ctx.status = 401;
+    return;
+  }
   try {
     const user = await User.findByUsername(username);
     if (!user) {
@@ -131,7 +144,7 @@ export const updateGitRepositoryInfo = async (ctx) => {
     }
     try {
       await clonePersonalRepository(repoUrl, username);
-    } catch (gitError) {
+    } catch (err) {
       ctx.status = 400;
       return;
     }
@@ -143,7 +156,7 @@ export const updateGitRepositoryInfo = async (ctx) => {
             linked: true,
             repoUrl: repoUrl,
             bojDir: bojDir ? bojDir : './',
-            linkRule: ruleConstant,
+            linkRule: ruleConstant ? ruleConstant : GIT_RULE_1,
           },
         },
       },

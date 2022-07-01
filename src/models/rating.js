@@ -16,7 +16,6 @@ RatingSchema.methods.serialize = function () {
   const data = this.toJSON();
   delete data.__v;
   delete data._id;
-  delete data.username;
   return data;
 };
 

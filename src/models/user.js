@@ -44,8 +44,11 @@ UserSchema.methods.setPassword = async function (password) {
 };
 
 // BOJ ID 변경
+// 변경 시 푼 문제 목록은 초기화
 UserSchema.methods.setBojId = async function (bojId) {
   this.userData.bojId = bojId;
+  this.userData.solvedProblem = [];
+  this.userData.triedProblem = [];
 };
 
 // 마지막 작업 성공 여부 기록
@@ -89,7 +92,6 @@ UserSchema.methods.serializeAllData = function () {
   const data = this.toJSON();
   delete data.hashedPassword;
   delete data.emailVerificationToken;
-  delete data.isEmailVerified;
   delete data.userData;
   delete data.latestRequestSucceed;
   delete data.gitRepoInformation;
@@ -117,7 +119,6 @@ UserSchema.methods.serializePrivateData = function () {
   const data = this.toJSON();
   delete data.hashedPassword;
   delete data.emailVerificationToken;
-  delete data.isEmailVerified;
 
   return data;
 };
