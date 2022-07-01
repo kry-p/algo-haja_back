@@ -16,10 +16,19 @@ const ProblemSchema = new Schema({
     required: true,
   },
   solvedacTier: { type: Number, default: 0 },
-  tags: [String],
+  tags: { en: { type: [String] }, ko: { type: [String] } },
 });
 
 ProblemSchema.plugin(arrayUniquePlugin);
+
+// 불필요한 데이터는 지우고 보냄
+ProblemSchema.methods.serialize = function () {
+  const data = this.toJSON();
+  delete data.__v;
+  delete data._id;
+  delete data.tags.en;
+  return data;
+};
 
 const Problem = mongoose.model('Problem', ProblemSchema);
 

@@ -131,20 +131,20 @@ export const findPersonalSource = (name, problemNo, subDir) => {
     const sourcePath = subDir
       ? path.resolve(`./repos/personal/${name}`, subDir)
       : path.resolve(`./repos/personal/${name}`);
-    findSourceFile(sourcePath, fileList);
 
+    findSourceFile(sourcePath, fileList);
     fileList.map((file) => {
       const extension = fileExtension(file);
       const split = file.split(/\/|\\/);
       const problem = parseInt(split[split.length - 2]);
-      if (problem !== problemNo) {
+      if (problem != problemNo) {
         return;
       }
       result.push({
         name,
         language: EXT_LANG.get(extension),
         problemNo: problem,
-        content: String.raw`${fs.readFileSync(file, 'utf-8')}`,
+        source: String.raw`${fs.readFileSync(file, 'utf-8')}`,
       });
     });
 
@@ -184,7 +184,7 @@ export const findGroupSource = (name, problemNo, subDir) => {
       const extension = fileExtension(file);
       const split = file.split(/\/|\\/);
       const problem = parseInt(split[split.length - 3]);
-      if (problem !== problemNo) {
+      if (problem != problemNo) {
         return;
       }
 
@@ -192,7 +192,7 @@ export const findGroupSource = (name, problemNo, subDir) => {
         user: split[split.length - 2],
         language: EXT_LANG.get(extension),
         problemNo: problem,
-        content: String.raw`${fs.readFileSync(file, 'utf-8')}`,
+        source: String.raw`${fs.readFileSync(file, 'utf-8')}`,
       });
     });
 

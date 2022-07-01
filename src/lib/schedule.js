@@ -7,6 +7,8 @@ import Problem from '../models/problem';
 import { fetchUserSolved } from './external/boj';
 import { fetchProblemInfo, fetchUserInfo } from './external/solvedac';
 import { logger } from '../config/winston';
+import { BOJ_TAGS } from './constants';
+import { CredUserpassPayload } from 'nodegit';
 
 // 일정 시간 Suspend (API call limit 방지)
 const sleep = (time) => new Promise((res) => setTimeout(res, time));
@@ -63,47 +65,51 @@ const getBojUserList = async () => {
 };
 
 const retrieveBojUserData = async (bojId) => {
-  const user = await User.findOne({ 'userdata.bojId': bojId });
-  if (!user) {
+  const users = await User.find({ 'userdata.bojId': bojId });
+  if (users.length === 0) {
     logger.error(
-      `BOJ / solved.ac User data retriever: 추가하려는 사용자 ${username}가 없습니다. 건너뜁니다.`,
+      `BOJ / solved.ac User data retriever: ${bojId}에 해당하는 사용자가 없습니다. 건너뜁니다.`,
     );
   }
-  const username = user.username;
-  logger.info(
-    `BOJ / solved.ac User data retriever: ${username} 사용자의 정보를 가져옵니다...`,
-  );
-  global.bojQueue.delete(bojId);
-  const solvedData = await fetchUserInfo(bojId);
-  const bojData = await fetchUserSolved(bojId);
 
-  if (solvedData.error) {
-    logger.error(`error code ${solvedData.error.response.status}`);
-    await user.setRequestSucceed('solvedac', false);
-  } else {
-    await user.setRequestSucceed('solvedac', true);
-    await user.setSolvedacTier(solvedData.data.tier);
-  }
-  // 가져오는 데 실패
-  if (bojData.error) {
-    logger.error(
-      `BOJ User data retriever: error code ${bojData.error.response.status}`,
+  for (const user of users) {
+    const username = user.username;
+    logger.info(
+      `BOJ / solved.ac User data retriever: ${username} 사용자의 정보를 가져옵니다...`,
     );
-    await user.setRequestSucceed('boj', false);
-  } else {
-    await user.setRequestSucceed('boj', true);
-    await user.setUserSolved(bojData);
-  }
+    global.bojQueue.delete(bojId);
+    const solvedData = await fetchUserInfo(bojId);
+    const bojData = await fetchUserSolved(bojId);
 
-  await User.updateOne({ username }, user);
-  logger.info(
-    `BOJ / solved.ac User data retriever: ${username} 사용자 정보를 업데이트했습니다.`,
-  );
-  logger.info(
-    `BOJ / solved.ac User data retriever: BOJ: ${
-      bojData.error ? '실패' : '성공'
-    }, solved.ac: ${solvedData.error ? '실패' : '성공'}.`,
-  );
+    if (solvedData.error) {
+      logger.error(`error code ${solvedData.error.response.status}`);
+      await user.setRequestSucceed('solvedac', false);
+    } else {
+      await user.setRequestSucceed('solvedac', true);
+      await user.setSolvedacTier(solvedData.data.tier);
+    }
+    // 가져오는 데 실패
+    if (bojData.error) {
+      logger.error(
+        `BOJ User data retriever: error code ${bojData.error.response.status}`,
+      );
+      await user.setRequestSucceed('boj', false);
+    } else {
+      await user.setRequestSucceed('boj', true);
+      await user.setUserSolved(bojData);
+    }
+
+    await User.updateOne({ username }, user);
+    logger.info(
+      `BOJ / solved.ac User data retriever: ${username} 사용자 정보를 업데이트했습니다.`,
+    );
+    logger.info(
+      `BOJ / solved.ac User data retriever: BOJ: ${
+        bojData.error ? '실패' : '성공'
+      }, solved.ac: ${solvedData.error ? '실패' : '성공'}.`,
+    );
+    await sleep(5000);
+  }
 };
 
 const getProblemList = async () => {
@@ -151,7 +157,12 @@ const retrieveProblemData = async (problemId) => {
       {
         problemName: info.data.title,
         solvedacTier: info.data.level,
-        tags: info.data.tags,
+        tags: {
+          en: info.data.tags,
+          ko: info.data.tags.map((tag) =>
+            BOJ_TAGS[tag] ? BOJ_TAGS[tag] : tag,
+          ),
+        },
       },
     );
     logger.info(
@@ -162,7 +173,10 @@ const retrieveProblemData = async (problemId) => {
       problemId,
       problemName: info.data.title,
       solvedacTier: info.data.level,
-      tags: info.data.tags,
+      tags: {
+        en: info.data.tags,
+        ko: info.data.tags.map((tag) => (BOJ_TAGS[tag] ? BOJ_TAGS[tag] : tag)),
+      },
     });
     await newProblem.save();
     logger.info(

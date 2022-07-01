@@ -1,83 +1,120 @@
 import Problem from '../../models/problem';
 import User from '../../models/user';
 import Group from '../../models/group';
+import Solve from '../../models/solve';
 import Rating from '../../models/rating';
 import { fetchProblemInfo } from '../../lib/external/solvedac';
 import { addToSolvedacQueue } from '../../lib/schedule';
+import { findGroupSource, findPersonalSource } from '../../lib/git';
+import binarySearch from '../../lib/binarySearch';
+import { NO_TRY, SOLVED, TRIED } from '../../lib/constants';
 
-/*
- * 문제 추가
- * PUT - /api/problem
- */
-export const addProblem = async (ctx) => {
-  const { problemId } = ctx.request.body;
-  // 필수 항목 체크
+// 문제 상세정보 조회
+// GET - /api/problem
+export const getProblem = async (ctx) => {
+  const { problemId } = ctx.params;
+  const user = ctx.state.user;
+
   if (!problemId) {
     ctx.status = 401;
     return;
   }
-
   try {
-    // 중복 체크
-    const check = await Problem.findOne({ problemId });
-    if (check) {
-      ctx.status = 409;
+    const problem = await Problem.findOne({ problemId });
+    if (!problem) {
+      ctx.status = 404;
       return;
     }
-    // 문제 정보를 가져옴
-    const newProblem = await fetchProblemInfo(problemId);
-    // 가져오는 데 실패
-    if (newProblem.error) {
-      ctx.status = 401;
-      return;
-    }
+    if (!user) {
+      const result = {
+        problem,
+        username: null,
+        solve: null,
+        userSolved: null,
+        userTried: null,
+      };
+      ctx.body = result;
+    } else {
+      const currentUser = await User.findOne({ username: user.username });
+      const solveDb = await Solve.find({
+        $and: [{ username: user.username }, { problemId }],
+      });
+      const solvePersonalGit = currentUser.gitRepoInformation.linked
+        ? findPersonalSource(
+            user.username,
+            problemId,
+            currentUser.gitRepoInformation.bojDir,
+          )
+        : { data: [] };
+      const solveGroupGit = [];
+      for (const group of currentUser.userData.group) {
+        const currentGroup = await Group.findOne({ groupName: group });
+        // 찾는 그룹이 없음
+        if (!group) {
+          return;
+        }
+        const solve = findGroupSource(
+          group,
+          problemId,
+          currentGroup.gitRepoInformation.bojDir,
+        );
+        if (solve.error) {
+          return;
+        }
+        const result = solve.data
+          .map((solve) => {
+            const temp = solve;
+            const actualUser = currentGroup.gitRepoInformation.memberName.find(
+              (x) => x.nameInRepo == solve.user,
+            );
+            if (actualUser) {
+              temp.actualUsername = actualUser.username;
+            }
+            return temp;
+          })
+          .filter(
+            (solve) =>
+              solve.actualUsername && solve.actualUsername != user.username,
+          );
 
-    const problem = new Problem({
-      problemId,
-      problemName: newProblem.data.title,
-      solvedacTier: newProblem.data.level,
-      tags: newProblem.data.tags,
-    });
-    problem.save();
-    ctx.status = 201; // created
+        solveGroupGit.push({
+          groupName: group,
+          solve: result,
+        });
+      }
+      const result = {
+        problem,
+        username: user.username,
+        solve: {
+          user: [...solveDb, ...solvePersonalGit.data],
+          group: solveGroupGit,
+        },
+        userSolved: currentUser.userData.solvedProblem.includes(problemId),
+        userTried: currentUser.userData.triedProblem.includes(problemId),
+      };
+      ctx.body = result;
+    }
+    ctx.status = 200;
   } catch (err) {
     ctx.throw(500, err);
   }
 };
 
 /*
- * 문제 정보 수정
- * UPDATE - /api/problem/info
+ * 문제 정보 업데이트 요청
+ * POST - /api/problem/info
  */
 export const updateProblemInfo = async (ctx) => {
   const { problemId } = ctx.request.body;
+
   if (!problemId) {
-    ctx.status = 404;
+    ctx.status = 401;
     return;
   }
+
   try {
-    // 문제 정보를 가져옴
-    const newProblem = await fetchProblemInfo(problemId);
-    // 가져오는 데 실패
-    if (newProblem.error) {
-      ctx.status = 401;
-      return;
-    }
-    const problem = await Problem.findOneAndUpdate(
-      { problemId },
-      {
-        $set: {
-          problemName: newProblem.data.title,
-          solvedacTier: newProblem.data.level,
-          tags: newProblem.data.tags,
-        },
-      },
-    );
-    if (!problem) {
-      ctx.status = 404;
-      return;
-    }
-    ctx.status = 204; // No content
+    addToSolvedacQueue(problemId);
+    ctx.status = 202;
   } catch (err) {
     ctx.throw(500, err);
   }
@@ -219,17 +256,80 @@ export const getGroupProblem = async (ctx) => {
   }
 };
 
-export const updateProblemFromSolvedac = async (ctx) => {
-  const { problemId } = ctx.request.body;
-
-  if (!problemId) {
-    ctx.status = 401;
-    return;
-  }
+// 내가 풀거나 시도한 문제
+export const getUserSolvedOrTriedProblem = async (ctx) => {
+  const { username } = ctx.state.user;
 
   try {
-    addToSolvedacQueue(problemId);
-    ctx.status = 202;
+    const groupData = [];
+    const user = await User.findOne({ username });
+    if (!user) {
+      ctx.status = 401;
+      return;
+    }
+    const list = [
+      ...user.userData.solvedProblem,
+      ...user.userData.triedProblem,
+    ];
+    const unsortedProblems = await Problem.find()
+      .in('problemId', list)
+      .then((problems) => problems.map((problem) => problem.serialize()));
+    const problems = unsortedProblems.sort((a, b) => a.problemId - b.problemId);
+
+    for (const group of user.userData.group) {
+      const currentGroup = await Group.findOne({ groupName: group });
+      if (!currentGroup) {
+        continue;
+      }
+      const users = await User.find({
+        username: { $in: currentGroup.member },
+      });
+      if (users.length == 0) {
+        continue;
+      }
+      let userSolved = [];
+      let userTried = [];
+      users.forEach((user) => {
+        if (user.username !== username) {
+          userSolved = userSolved.concat(user.userData.solvedProblem);
+          userTried = userTried.concat(user.userData.triedProblem);
+        }
+      });
+      userSolved = new Set(userSolved);
+      userTried = userTried.filter((x) => !userSolved.has(x));
+      groupData.push({
+        groupName: group,
+        solved: [...userSolved].sort((a, b) => a - b),
+        tried: [...userTried].sort((a, b) => a - b),
+      });
+    }
+
+    const result = problems.map((problem) => {
+      const currentProblem = problem;
+      problem.solved = {
+        user:
+          binarySearch(problem.problemId, user.userData.solvedProblem) > -1
+            ? SOLVED
+            : binarySearch(problem.problemId, user.userData.triedProblem) > -1
+            ? TRIED
+            : NO_TRY,
+        group: [],
+      };
+      groupData.forEach((group) => {
+        problem.solved.group.push([
+          group.groupName,
+          binarySearch(problem.problemId, group.solved) > -1
+            ? SOLVED
+            : binarySearch(problem.problemId, group.tried) > -1
+            ? TRIED
+            : NO_TRY,
+        ]);
+      });
+      return currentProblem;
+    });
+
+    ctx.status = 200;
+    ctx.body = result;
   } catch (err) {
     ctx.throw(500, err);
   }

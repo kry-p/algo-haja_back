@@ -2,6 +2,8 @@
 export const passwordRegex = RegExp(
   /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&;()+\-_=/~`[\]{}'".,])[A-Za-z\d@$!%*#?&;()+\-_=/~`[\]{}'".,]{8,}$/,
 );
+// BOJ ID 검증 정규식
+export const bojIdRegex = /^[\w+]{3,20}$/;
 
 // 언어별 소스코드 확장자
 export const EXT_LANG = new Map([
@@ -35,6 +37,11 @@ export const EXT_LANG = new Map([
 export const GIT_RULE_1 = 1;
 export const GIT_RULE_2 = 2;
 
+// 문제 풀이 여부
+export const NO_TRY = 0;
+export const TRIED = 1;
+export const SOLVED = 2;
+
 // BOJ 태그
 export const BOJ_TAGS = {
   '0_1_bfs': '0-1 너비 우선 탐색',
@@ -43,7 +50,7 @@ export const BOJ_TAGS = {
   ad_hoc: '애드 혹',
   aho_corasick: '아호-코라식',
   alien: 'Aliens 트릭',
-  arbitary_precision: '임의 정밀도 / 큰 수 연산',
+  arbitrary_precision: '임의 정밀도 / 큰 수 연산',
   arithmetic: '사칙연산',
   articulation: '단절점과 단절선',
   backtracking: '백트래킹',
@@ -78,6 +85,7 @@ export const BOJ_TAGS = {
   degree_sequence: '차수열',
   delaunay: '델로네 삼각분할',
   deque: '덱',
+  dfs: '깊이 우선 탐색',
   differential_cryptanalysis: '차분 공격',
   dijkstra: '다익스트라',
   directed_mst: '유향 최소 신장 트리',
