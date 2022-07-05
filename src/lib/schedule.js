@@ -8,7 +8,7 @@ import { fetchUserSolved } from './external/boj';
 import { fetchProblemInfo, fetchUserInfo } from './external/solvedac';
 import { logger } from '../config/winston';
 import { BOJ_TAGS } from './constants';
-import { CredUserpassPayload } from 'nodegit';
+import { updatePersonalRepository } from './git';
 
 // 일정 시간 Suspend (API call limit 방지)
 const sleep = (time) => new Promise((res) => setTimeout(res, time));
@@ -20,11 +20,14 @@ export const addToSolvedacQueue = (problemId) => {
 export const addToBojQueue = (id) => {
   global.bojQueue.set(id, 0);
 };
+export const addToGitUserQueue = (username) => {
+  global.gitUserQueue.set(username, 0);
+};
 
 export const runScheduledJob = async () => {
   // Master crontab - 15분 단위로 최신 여부 체크
   cron.schedule('*/15 * * * *', async () => {
-    await Promise.all(getProblemList(), getBojUserList());
+    await Promise.all(getProblemList(), getBojUserList(), getGitRepoUserList());
   });
 
   // 문제 정보 업데이트
@@ -54,6 +57,20 @@ export const runScheduledJob = async () => {
       await sleep(10000);
     }
   });
+
+  // Git repo 업데이트
+  cron.schedule('* * * * *', async () => {
+    await sleep(5000);
+    global.gitUserQueue = new Map(
+      [...global.gitUserQueue.entries()].sort((a, b) => a[1] - b[1]),
+    );
+    const keys = Array.from(global.gitUserQueue.keys());
+    for (let i = 0; i < (keys.length > 5 ? 5 : keys.length); i++) {
+      const user = keys[i];
+      await retrieveGitData(user);
+      await sleep(10000);
+    }
+  });
 };
 
 const getBojUserList = async () => {
@@ -64,8 +81,35 @@ const getBojUserList = async () => {
   bojUserList.forEach((user) => global.bojQueue.set(user, new Date()));
 };
 
+const getGitRepoUserList = async () => {
+  const users = await User.find();
+  const gitRepoList = users
+    .filter((user) => user.gitRepoInformation.linked)
+    .map((user) => user.username);
+  gitRepoList.forEach((user) => global.gitUserQueue.set(user, new Date()));
+};
+
+const retrieveGitData = async (user) => {
+  logger.info(
+    `Git personal repo retriever: ${user} 사용자의 저장소에서 가져옵니다...`,
+  );
+  global.gitUserQueue.delete(user);
+  const info = await updatePersonalRepository(false, user);
+
+  // 가져오는 데 실패
+  if (info.error) {
+    logger.warn(
+      `Git personal repo retriever: ${user} 사용자의 Git 저장소를 업데이트할 수 없습니다. 건너뜁니다.`,
+    );
+  } else {
+    logger.info(
+      `Git personal repo retriever: ${user} 사용자의 Git 저장소를 업데이트했습니다.`,
+    );
+  }
+};
+
 const retrieveBojUserData = async (bojId) => {
-  const users = await User.find({ 'userdata.bojId': bojId });
+  const users = await User.find({ 'userData.bojId': bojId });
   if (users.length === 0) {
     logger.error(
       `BOJ / solved.ac User data retriever: ${bojId}에 해당하는 사용자가 없습니다. 건너뜁니다.`,

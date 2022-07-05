@@ -99,8 +99,10 @@ export const updatePersonalRepository = async (
     );
     await repo.fetchAll(nodegit.CloneOptions.fetchOpts);
     await repo.mergeBranches(
-      `${remote ? remote : 'master'}`,
-      `refs/remotes/${remote}/${branch}`,
+      `${branch ? branch : 'master'}`,
+      `refs/remotes/${remote ? remote : 'origin'}/${
+        branch ? branch : 'master'
+      }`,
     );
     return {
       result: 'success',
