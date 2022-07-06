@@ -4,7 +4,11 @@
  */
 import User from '../../models/user';
 import { clonePersonalRepository } from '../../lib/git';
-import { addToBojQueue } from '../../lib/schedule';
+import {
+  addToBojQueue,
+  addToSolvedacQueue,
+  getProblemList,
+} from '../../lib/schedule';
 import { bojIdRegex, passwordRegex, GIT_RULE_1 } from '../../lib/constants';
 // URI validator
 import { isUri } from 'valid-url';

@@ -156,7 +156,7 @@ const retrieveBojUserData = async (bojId) => {
   }
 };
 
-const getProblemList = async () => {
+export const getProblemList = async () => {
   const users = await User.find();
   const problems = await Problem.find();
   const problemSet = new Set();

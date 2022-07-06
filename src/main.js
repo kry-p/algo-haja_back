@@ -13,7 +13,7 @@ import bodyParser from 'koa-bodyparser';
 import Router from 'koa-router';
 import serve from 'koa-static';
 import send from 'koa-send';
-import compress from 'koa-compress';
+// import compress from 'koa-compress';
 import cors from '@koa/cors';
 
 // Mongoose
@@ -28,6 +28,7 @@ import zlib from 'zlib';
 import { runScheduledJob } from './lib/schedule';
 import { logger } from './config/winston';
 
+const sslify = require('koa-sslify').default;
 const app = new Koa();
 const router = new Router();
 
@@ -73,12 +74,13 @@ try {
   app.use(jwtMiddleware);
   app.use(router.routes()).use(router.allowedMethods());
   app.use(cors());
-  app.use(
-    compress({
-      threshold: 8192,
-      flush: zlib.constants.Z_SYNC_FLUSH,
-    }),
-  );
+  app.use(sslify());
+  // app.use(
+  //   compress({
+  //     threshold: 8192,
+  //     flush: zlib.constants.Z_SYNC_FLUSH,
+  //   }),
+  // );
 
   // for stand-alone API server
   if (buildDirectory !== undefined) {

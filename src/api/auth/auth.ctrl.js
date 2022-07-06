@@ -85,7 +85,6 @@ export const register = async (ctx) => {
  * @brief   입력받은 정보로 로그인합니다.
  */
 export const login = async (ctx) => {
-  console.log(ctx.request);
   const { username, password } = ctx.request.body;
   if (!username || !password) {
     ctx.status = 401; // Unauthorized
