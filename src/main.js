@@ -24,7 +24,6 @@ import api from './api';
 import jwtMiddleware from './lib/jwtMiddleware';
 
 // Libraries
-import zlib from 'zlib';
 import { runScheduledJob } from './lib/schedule';
 import { logger } from './config/winston';
 
@@ -38,8 +37,9 @@ require('dotenv').config();
 const { PORT, MONGO_URI, BUILD_DIR, CERT_PATH, DOMAIN } = process.env;
 const port = PORT || 4000;
 
-const buildDirectory =
-  BUILD_DIR === undefined ? undefined : path.resolve(__dirname, BUILD_DIR);
+const buildDirectory = BUILD_DIR
+  ? path.resolve(__dirname, BUILD_DIR)
+  : undefined;
 const serverCallback = app.callback();
 
 // 작업 큐
@@ -69,21 +69,13 @@ mongoose
 
 try {
   router.use('/api', api.routes());
-
   app.use(bodyParser());
   app.use(jwtMiddleware);
   app.use(router.routes()).use(router.allowedMethods());
   app.use(cors());
-  app.use(sslify());
-  // app.use(
-  //   compress({
-  //     threshold: 8192,
-  //     flush: zlib.constants.Z_SYNC_FLUSH,
-  //   }),
-  // );
 
   // for stand-alone API server
-  if (buildDirectory !== undefined) {
+  if (buildDirectory) {
     app.use(serve(buildDirectory));
     app.use(async (ctx) => {
       // not found, not started at /api
@@ -95,7 +87,8 @@ try {
   }
 
   // for https callback
-  if (CERT_PATH !== undefined) {
+  if (CERT_PATH) {
+    app.use(sslify());
     const config = {
       domain: DOMAIN,
       https: {
