@@ -4,11 +4,7 @@
  */
 import User from '../../models/user';
 import { clonePersonalRepository } from '../../lib/git';
-import {
-  addToBojQueue,
-  addToSolvedacQueue,
-  getProblemList,
-} from '../../lib/schedule';
+import { addToBojQueue } from '../../lib/schedule';
 import { bojIdRegex, passwordRegex, GIT_RULE_1 } from '../../lib/constants';
 // URI validator
 import { isUri } from 'valid-url';
@@ -73,6 +69,10 @@ export const changeUserPassword = async (ctx) => {
       ctx.status = 401;
       return;
     }
+    if (user.isTestAccount) {
+      ctx.status = 403;
+      return;
+    }
     await user.setPassword(newPassword);
     await User.updateOne({ username }, user);
     ctx.status = 204;
@@ -111,6 +111,10 @@ export const updateBasicInfo = async (ctx) => {
       ctx.status = 401;
       return;
     }
+    if (user.isTestAccount) {
+      ctx.status = 403;
+      return;
+    }
     if (bojId !== user.userData.bojId) {
       await user.setBojId(bojId);
       addToBojQueue(bojId);
@@ -131,19 +135,28 @@ export const updateBasicInfo = async (ctx) => {
  */
 export const updateGitRepositoryInfo = async (ctx) => {
   const { username } = ctx.state.user;
-  const { repoUrl, ruleConstant, bojDir } = ctx.request.body;
-  if (!repoUrl) {
+  const { password, repoUrl, ruleConstant, bojDir } = ctx.request.body;
+  if (!repoUrl || !password) {
     ctx.status = 400;
     return;
   }
   if (!(isUri(repoUrl) && isValid(bojDir))) {
-    ctx.status = 401;
+    ctx.status = 400;
     return;
   }
   try {
     const user = await User.findByUsername(username);
     if (!user) {
       ctx.status = 401;
+      return;
+    }
+    const valid = await user.checkPassword(password);
+    if (!valid) {
+      ctx.status = 401;
+      return;
+    }
+    if (user.isTestAccount) {
+      ctx.status = 403;
       return;
     }
     try {
@@ -194,7 +207,6 @@ export const updateSolvedProblem = async (ctx) => {
       ctx.status = 401;
       return;
     }
-
     await user.setBojId(user.userData.bojId);
     addToBojQueue(user.bojId);
     await User.updateOne({ username }, user);

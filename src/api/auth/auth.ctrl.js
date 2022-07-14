@@ -44,6 +44,7 @@ export const register = async (ctx) => {
       email,
       isAdmin: false,
       isEmailVerified: false,
+      isTestAccount: false,
       userData: {
         bojId: '',
         sourceOpened: false,

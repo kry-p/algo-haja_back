@@ -16,6 +16,7 @@ const UserSchema = new Schema({
   email: String,
   isEmailVerified: Boolean,
   isAdmin: Boolean,
+  isTestAccount: Boolean,
   userData: {
     group: [String],
     bojId: String,
